@@ -1,0 +1,17 @@
+syntax = "proto3";
+package rpc;
+
+service ResponseCalls {
+
+  rpc get_users (EmptyRequest) returns (GetUsersResponse) {};
+}
+
+
+message EmptyRequest{
+}
+
+message GetUsersResponse{
+  int32 status = 1;
+  repeated string users = 2;
+}
+

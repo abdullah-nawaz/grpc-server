@@ -1,0 +1,61 @@
+version: "3.3"
+services:
+  grpc_server-rabbitmq:
+    image: rabbitmq:latest
+    networks:
+      - grpc_server_default
+    container_name: grpc_server-rabbitmq
+
+  grpc_server-mysqldb:
+    image: mysql:5.7.8
+    container_name: grpc_server-mysqldb
+    networks:
+      - grpc_server_default
+    environment:
+      MYSQL_DATABASE: grpcserverdb
+      MYSQL_USER: webuser
+      MYSQL_PASSWORD: admin123
+      MYSQL_ROOT_PASSWORD: admin123
+    volumes:
+      - grpcserverdbvolume:/var/lib/mysql
+      - ./conf:/etc/mysql/conf.d
+    expose:
+      - 3306
+
+  grpc_server-worker1:
+    build: .
+    image: grpc_server-image
+    networks:
+      - grpc_server_default
+    container_name: grpc_server-worker1
+    entrypoint: /grpc-server/bin/run_grpc_server_worker.sh
+    volumes:
+      - .:/grpc-server
+
+  grpc_server-rpc:
+    restart: always
+    networks:
+      - server_vpcplus_network  # (external network)
+      - grpc_server_default
+    build:
+      context: .
+      dockerfile: ./server/rpc/Dockerfile
+    container_name: grpc_server-rpc
+    entrypoint: /grpc-server/bin/run_grpc_server_rpc.sh
+    environment:
+      GRPC_VERBOSITY: INFO
+      GRPC_TRACE: http
+      GRPC_WORKERS: 30
+      MAX_MESSAGE_SIZE: 10000
+      GRPC_PORT: 50051
+#      CERTS_PATH: /grpc-server/deployment/certs
+    volumes:
+      - .:/grpc-server
+
+volumes:
+  grpcserverdbvolume:
+networks:
+  server_vpcplus_network:
+    external: true
+  grpc_server_default:
+
